@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Northwest Palace Relief</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+    body {
+        background-color: #000;
+        color: #fff;
+        margin: 0px;
+        overflow: hidden;
+    }
+    </style>
+</head>
+
+<body>
+    <!-- The threejs scripts -->
+    <script type='text/javascript' src='js/three.js-master/build/three.min.js'></script>
+    <script type='text/javascript' src='js/three.js-master/examples/js/controls/TrackballControls.js'></script>
+    <script type='text/javascript' src='js/three.js-master/examples/js/libs/tween.min.js'></script>
+    <script type='text/javascript' src='js/three.js-master/examples/js/libs/stats.min.js'></script>
+    <script type='text/javascript' src='js/three.js-master/examples/js/loaders/LoaderSupport.js'></script>
+    <script type='text/javascript' src='js/three.js-master/examples/js/loaders/OBJLoader.js'></script>
+    <script type='text/javascript' src='js/three.js-master/examples/js/loaders/OBJLoader2.js'></script>
+    <script type='text/javascript' src="js/three.js-master/examples/js/loaders/MTLLoader.js"></script>
+    <script type='text/javascript' src="js/three.js-master/examples/js/loaders/PLYLoader.js"></script>
+
+    <!-- the gui -->
+    <script type="text/javascript" src="js/dat.gui-master/build/dat.gui.min.js"></script>
+
+    <!-- perlin noise -->
+    <script type="text/javascript" src="js/perlin.js"></script>
+
+
+    <script>
+    // The basic variables for the 3D scene
+    var container;
+    var camera, controls, scene, renderer;
+    var mouse = { x: 0, y: 0 };
+    var windowHalfX = window.innerWidth / 2;
+    var windowHalfY = window.innerHeight / 2;
+    var tween;
+    var raycaster;
+    var objects = [];
+
+    // The variables assigned to the walls of the room 
+    var backwallCube, backwall_mid_leftCube, backwall_leftCube;
+    var leftwallCube;
+    var floorCube;
+
+    // The variables for the different lights
+    var fireLight1, torchLight1, dirLight, ambLight, hemiLight;
+    var fireFlicker = true;
+
+    // The lists of reliefs for the meshs
+    var reliefNameList1 = ["trim-2.ply", //regular mesh
+                          ["trim-2_smooth1.ply", "trim-2_smooth3.ply", "trim-2_smooth5.ply"], //smoothed meshes
+                          ["colored2.obj", "colored2.mtl"], //colored mesh
+                          [[0.0, 0.0, 0.0], [0.0], [0.3]]]; //transformations to apply (translation, rotation, scaling)
+    var reliefNameList2 = ["trim.ply", 
+                          ["trim_smooth1.ply", "trim_smooth3.ply", "trim_smooth5.ply"], 
+                          ["colored2.obj", "colored2.mtl"], 
+                          [[5.48, 0.0, -1.0], [Math.PI/2], [0.11]]];
+    var reliefNameLists = [
+        reliefNameList1, 
+        reliefNameList2
+        ];
+
+
+    var reliefList = []
+    var exaggeratedReliefList = [];
+    var colorReliefList = [];
+
+    init();
+    animate();
+
+    function init() {
+
+        container = document.createElement('div');
+        document.body.appendChild(container);
+
+        renderer = new THREE.WebGLRenderer();
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        container.appendChild(renderer.domElement);
+
+        window.addEventListener('resize', onWindowResize, false);
+        renderer.domElement.ondblclick = onDoubleClick;
+        window.addEventListener( 'keydown', onKeyDown, false);
+
+        raycaster = new THREE.Raycaster();
+
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+        camera.position.set(0, 1, -2);
+
+        controls = new THREE.TrackballControls(camera, renderer.domElement);
+        controls.rotateSpeed = 4.0;
+        controls.zoomSpeed = 2;
+        controls.panSpeed = 0.8;
+        controls.noZoom = false;
+        controls.noPan = false;
+        controls.staticMoving = true;
+        controls.dynamicDampingFactor = 0.3;
+        controls.target = new THREE.Vector3(0, 0, 0.0);
+
+        scene = new THREE.Scene();
+
+        // Creates the various light sources that will be used in the scene
+        function getLight(scene) {
+            // *****
+            // SUNLIGHT
+            // *****
+            // * The sunlight is composed of a directional light and an
+            //   optional Three.js hemisphere light
+
+            var color = new THREE.Color(0xFFFFFF);
+            dirLight = new THREE.DirectionalLight( color, 0);
+            dirLight.position.set( 0, 10, 0);
+            scene.add(dirLight);
+
+            //                                    sky color ground color intensity 
+            // hemiLight = new THREE.HemisphereLight( 0x1F467F, 0x7F633F, 0.0 );
+            // scene.add( hemiLight );
+
+            // *****
+            // FIRELIGHT
+            // *****
+            // * The firelight is a pointlight whose intensity is frequently adjusted
+            var color = new THREE.Color(0xFF9329);
+            fireLight1 = new THREE.PointLight( color, 1 );
+            fireLight1.position.set( 0, 1, -5 );
+            scene.add( fireLight1 );
+
+            // * One of the spotlight alternatives to the firelight PointLight
+            // fireLight1 = new THREE.SpotLight( color, 1);
+            // fireLight1.position.set( 0, 1, -10 );
+            // fireLight1.angle = Math.PI/10;
+            // fireLight1.target.position.set( 0, 0, 1.4 );
+            // scene.add( fireLight1.target );
+            // scene.add( fireLight1 );
+
+            // * Options to enable shadow properties for fireLight1; 
+            //   currently; shadow map does not appear to be fine enough resolution
+            // fireLight1.castShadow = true;
+            // fireLight1.shadow.mapSize.width = 4096; 
+            // fireLight1.shadow.mapSize.height = 4096;
+            // fireLight1.shadow.camera.near = 0.5;    // default
+            // fireLight1.shadow.camera.far = 15000;     // default
+
+            // * Create a helper for the shadow camera (optional)
+            // var helper = new THREE.CameraHelper( fireLight1.shadow.camera );
+            // scene.add( helper );  
+
+            // *****
+            // TORCHLIGHT
+            // *****
+            // * This is a pointlight similar to the firelight, but moves to be
+            //   in the same location as the camera
+            var color = new THREE.Color(0xFF9329);
+            torchLight1 = new THREE.PointLight( color, 0.0 );
+            torchLight1.position.set( camera.position.x, camera.position.y, camera.position.z );
+            scene.add( torchLight1 );
+
+            // *****
+            // AMBIENTLIGHT
+            // *****
+            // * This is the ambient lighting option that lights everything
+            //   with an intensity of 1.0
+            ambLight = new THREE.AmbientLight(0xFFFFFF, 0.0);
+            scene.add(ambLight);
+
+            // *****
+            // DEFAULT AMBIENTLIGHT
+            // *****
+            // * This is the ambient light that is present all of the time
+            var ambientLight = new THREE.AmbientLight(0x111111);
+            scene.add(ambientLight);
+
+            return;
+        }
+        getLight(scene);
+
+        // Creates the cubes that make up the walls of the room
+        function fillScene() {
+            // *****
+            // Back wall
+            // *****
+            var tex_backwall = new THREE.TextureLoader().load("textures/limestone.jpg");
+            tex_backwall.repeat.set(16, 6);
+            tex_backwall.wrapS = THREE.RepeatWrapping;
+            tex_backwall.wrapT = THREE.RepeatWrapping;
+            var mat_backwall = new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.1, map: tex_backwall});
+
+            backwallCube = new THREE.Mesh(new THREE.CubeGeometry( 8, 3, 1.0), mat_backwall );
+            backwallCube.position.z = .53;
+            backwallCube.position.y = 0.65;
+            backwallCube.position.x = -0.5;
+            backwallCube.castShadow = false;
+            backwallCube.receiveShadow = true;
+            scene.add( backwallCube );
+
+            var tex_backwall_mid = new THREE.TextureLoader().load("textures/limestone.jpg");
+            tex_backwall_mid.repeat.set(2, 2);
+            tex_backwall_mid.wrapS = THREE.RepeatWrapping;
+            tex_backwall_mid.wrapT = THREE.RepeatWrapping;
+            var mat_backwall_mid = new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.1, map: tex_backwall_mid});
+
+            backwall_mid_leftCube = new THREE.Mesh(new THREE.CubeGeometry( 1, 1, 1.0), mat_backwall_mid );
+            backwall_mid_leftCube.position.z = .53;
+            backwall_mid_leftCube.position.y = 1.65;
+            backwall_mid_leftCube.position.x = 4;
+            backwall_mid_leftCube.castShadow = false;
+            backwall_mid_leftCube.receiveShadow = true;
+            scene.add( backwall_mid_leftCube );
+
+            var tex_backwall_mid_left = new THREE.TextureLoader().load("textures/limestone.jpg");
+            tex_backwall_mid_left.repeat.set(2, 6);
+            tex_backwall_mid_left.wrapS = THREE.RepeatWrapping;
+            tex_backwall_mid_left.wrapT = THREE.RepeatWrapping;
+            var mat_backwall_mid_left = new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.1, map: tex_backwall_mid_left});
+
+            backwall_leftCube = new THREE.Mesh(new THREE.CubeGeometry( 1, 3, 1.0), mat_backwall_mid_left );
+            backwall_leftCube.position.z = .53;
+            backwall_leftCube.position.y = 0.65;
+            backwall_leftCube.position.x = 5;
+            backwall_leftCube.castShadow = false;
+            backwall_leftCube.receiveShadow = true;
+            scene.add( backwall_leftCube );
+
+            // *****
+            // Left wall
+            // *****
+            var tex_leftwall = new THREE.TextureLoader().load("textures/limestone.jpg");
+            tex_leftwall.repeat.set(13, 6);
+            tex_leftwall.wrapS = THREE.RepeatWrapping;
+            tex_leftwall.wrapT = THREE.RepeatWrapping;
+            var mat_leftwall = new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.1, map: tex_leftwall});
+            leftwallCube = new THREE.Mesh(new THREE.CubeGeometry(1, 3, 6.5), mat_leftwall);
+            leftwallCube.position.y = 0.65;
+            leftwallCube.position.x = 6;
+            leftwallCube.position.z = -3.2;
+            scene.add(leftwallCube);
+
+            // *****
+            // Floor
+            // *****
+            floorCube = new THREE.Mesh(new THREE.CubeGeometry(10, 1, 6.5), mat_leftwall);
+            floorCube.position.y = -1.35;
+            floorCube.position.x = 0.5;
+            floorCube.position.z = -3.2;
+            scene.add(floorCube);
+
+            objects.push(backwallCube);
+            objects.push(backwall_leftCube);
+            objects.push(backwall_mid_leftCube);
+            objects.push(leftwallCube);
+            objects.push(floorCube);
+        }
+        fillScene();
+
+        // *****
+        // Load the meshes
+        // *****
+
+        // A loading manager that outputs to console the loading status of the meshes
+        var manager = new THREE.LoadingManager();
+        manager.onProgress = function (item, loaded, total) {
+
+            console.log(item, loaded, total);
+
+        };
+
+        // Loading functions that provide more detail about progress of loading
+        var onProgress = function (xhr) {
+            if (xhr.lengthComputable) {
+                var percentComplete = xhr.loaded / xhr.total * 100;
+                console.log(Math.round(percentComplete, 2) + '% downloaded');
+            }
+        };
+
+        // Error "function"
+        var onError = function (xhr) {
+        };
+
+        // // Create loader object
+        var loader = new THREE.PLYLoader(manager);
+
+        // Loop through each relief and load meshes
+        for (var i = 0; i < reliefNameLists.length; i++)
+        {
+            var reliefNameList = reliefNameLists[i];
+            console.log(reliefNameList);
+
+            var meshName = reliefNameList[0];
+            var smoothsNames = reliefNameList[1];
+            var colorName = reliefNameList[2];
+            var transformations = reliefNameList[3];
+
+            var promises = [];
+
+            promises.push(transformations);
+
+            var loaderPromise = new Promise(function (resolve, reject) {
+                function loadDone(x) {
+                    // console.log("loader loaded!");
+                    resolve(x);
+                }
+
+                var loader = new THREE.PLYLoader(manager);
+
+                loader.load( 'models/'.concat(meshName), function ( geometry ) {
+
+                    geometry.computeVertexNormals();
+
+                    var material = new THREE.MeshStandardMaterial( { vertexColors: THREE.VertexColors, 
+                        flatShading: true, 
+                        roughness: 0.8,
+                        metalness: 0.1,
+                        side: THREE.DoubleSide, } );
+
+                    var relief = new THREE.Mesh( geometry, material );
+
+                    relief.visible = true;
+                    relief.geometry.attributes.normal.needsUpdate = true;
+
+                    // Options to enable shadow
+                    // relief.castShadow = true;
+                    // relief.receiveShadow = true;
+
+                    loadDone(relief);
+
+                }, onProgress, onError);
+            });
+
+            promises.push(loaderPromise);
+
+            var colorPromise = new Promise(function (resolve, reject) {
+                function loadDone(x) {
+                    resolve(x);
+                }
+
+                var mtlLoader = new THREE.MTLLoader();
+                mtlLoader.setBaseUrl( 'models/' );
+                mtlLoader.setPath( 'models/' );
+                var url = colorName[1];
+                mtlLoader.load( url, function( materials ) {
+
+                    materials.preload();
+
+                    var objLoader = new THREE.OBJLoader();
+                    objLoader.setMaterials( materials );
+                    objLoader.setPath( 'models/' );
+                    objLoader.load( colorName[0], function ( object ) {
+
+                        object.visible = false;
+
+                        loadDone(object);
+
+                    }, onProgress, onError );
+
+                });
+            });
+
+            promises.push(colorPromise);
+
+            for (var j = 0; j < smoothsNames.length; j++)
+            {
+                var name = smoothsNames[j];
+
+                var smoothPromise = new Promise(function (resolve, reject) {
+                    function loadDone(x) {
+                        // console.log("loader loaded!");
+                        resolve(x);
+                    }
+
+                    var loader = new THREE.PLYLoader(manager);
+
+                    loader.load( 'models/'.concat(name), function ( geometry ) {
+
+                        geometry.computeVertexNormals();
+
+                        var material = new THREE.MeshStandardMaterial( { vertexColors: THREE.VertexColors, 
+                            flatShading: true, 
+                            roughness: 0.8,
+                            metalness: 0.1,
+                            side: THREE.DoubleSide, } );
+
+                        var mesh = new THREE.Mesh( geometry, material );
+
+                        mesh.visible = false;
+
+                        loadDone(mesh);
+                    } );
+                });
+
+                promises.push(smoothPromise);
+            }
+
+            Promise.all(promises).
+                then(function(values)
+                {
+                    console.log(values);
+
+                    var transformations = values[0];
+                    var relief = values[1];
+                    var colorRelief = values[2];
+                    values.splice(0, 3);
+                    var smooths = values;
+
+                    relief.scale.set(transformations[2], transformations[2], transformations[2]);
+                    relief.rotation.y = transformations[1];
+                    relief.position.x = transformations[0][0];
+                    relief.position.y = transformations[0][1];
+                    relief.position.z = transformations[0][2];
+
+                    scene.add( relief );
+
+                    // should translate colorReliefs too 
+                    scene.add( colorRelief );
+
+                    var exaggeratedRelief = relief.clone(true);
+                    exaggeratedRelief = relief.clone(true);
+                    exaggeratedRelief.visible = false;
+                    exaggeratedRelief.geometry.attributes.normal.needsUpdate = true;
+
+
+                    // Create the exaggerated shading mesh
+                    // Currently weights are fixed
+                    var weights = [0.3, 0.2, 0.1];
+                    var originalWeight = 0.6;
+                    var totalWeight = 1.2;
+
+                    for (var i = 0; i < exaggeratedRelief.geometry.attributes.normal.array.length; i++)
+                    {
+                        var value = originalWeight * relief.geometry.attributes.normal.array[i];
+
+                        for (var j = 0; j < smooths.length; j++)
+                        {
+                            value += weights[j] * smooths[j].geometry.attributes.normal.array[i];
+                        }
+
+                        value /= totalWeight;
+
+                        exaggeratedRelief.geometry.attributes.normal.array[i] = value;
+                    }
+
+                    exaggeratedRelief.geometry.attributes.normal.needsUpdate = true;
+
+                    // PhongMaterial seems to account for normals while StandardMaterial does not
+                    exaggeratedRelief.material = new THREE.MeshPhongMaterial({ 
+                        vertexColors: THREE.VertexColors, 
+                        flatShading: true, 
+                    } );
+
+                    scene.add( exaggeratedRelief );
+
+                    reliefList.push(relief);
+                    exaggeratedReliefList.push(exaggeratedRelief);
+                    colorReliefList.push(colorRelief);
+                });
+        }
+
+        var gui = new dat.GUI( );
+
+        // ***********
+        // LIGHTING OPTIONS
+        // ***********
+        lightingParams = {
+            UniformLight: false,
+        }
+
+        var lightingGUI = gui.addFolder( "Lighting options" );
+        lightingGUI.open();
+
+        // FireLight SubFolder
+        fireParams = {
+            FireLight: true,
+            TorchLight: false,
+            FlickerEnabled: true,
+        }
+
+        var fireGUI = lightingGUI.addFolder( "FireLight options" );
+        fireGUI.open();
+        fireGUI.add(fireParams, 'FireLight').onChange( function() {
+            fireLight1.intensity = 1.0 * (fireParams.FireLight == true);
+        });
+        fireGUI.add(fireParams, 'TorchLight').onChange( function() {
+            torchLight1.intensity = 1.0 * (fireParams.TorchLight == true);
+        });
+        fireGUI.add(fireParams, 'FlickerEnabled').onChange( function() {
+            fireFlicker = fireParams.FlickerEnabled;
+        });
+
+        // SunLight SubFolder
+        sunParams = {
+            SunLight: false,
+            SunPositionZ: 0.5,
+            SunPositionX: 0.5,
+        }
+
+        var sunGUI = lightingGUI.addFolder( "SunLight options" );
+        sunGUI.open();
+        sunGUI.add(sunParams, 'SunLight').onChange( function() {
+            dirLight.intensity = 1.0 * (sunParams.SunLight == true);
+            // hemiLight.intensity = 0.6 * (sunParams.SunLight == true);
+        });
+        sunGUI.add(sunParams, 'SunPositionZ', 0, 1).onChange( function() {
+            var y = 10.0 * Math.sin(sunParams.SunPositionZ/1.0 * Math.PI);
+            dirLight.position.y = y * Math.sin(sunParams.SunPositionX/1.0 * Math.PI);
+            dirLight.position.x = y * Math.cos(sunParams.SunPositionX/1.0 * Math.PI);
+            dirLight.position.z = 10.0 * Math.cos(sunParams.SunPositionZ/1.0 * Math.PI);
+        });
+        sunGUI.add(sunParams, 'SunPositionX', 0, 1).onChange( function() {
+            var y = 10.0 * Math.sin(sunParams.SunPositionZ/1.0 * Math.PI);
+            dirLight.position.y = y * Math.sin(sunParams.SunPositionX/1.0 * Math.PI);
+            dirLight.position.x = y * Math.cos(sunParams.SunPositionX/1.0 * Math.PI);
+            dirLight.position.z = 10.0 * Math.cos(sunParams.SunPositionZ/1.0 * Math.PI);
+        });
+
+        // Ambient Light
+        lightingGUI.add(lightingParams, 'UniformLight').onChange( function() {
+            ambLight.intensity = 1.0 * (lightingParams.UniformLight == true);
+        });
+
+        // ***********
+        // EXAGGERATED SHADING
+        // ***********
+        exaggeratedParams = {
+            Exaggerate: false,
+        }
+
+        var exaggerateGUI = gui.addFolder( "Exaggerated shading ");
+        exaggerateGUI.open();
+        exaggerateGUI.add(exaggeratedParams, 'Exaggerate').onChange( function() {
+            for (var i = 0; i < reliefList.length; i++)
+            {
+                exaggeratedReliefList[i].visible = exaggeratedParams.Exaggerate;
+                reliefList[i].visible = !exaggeratedParams.Exaggerate;
+            }
+        });
+
+        // ***********
+        // COLORED PREDICTION
+        // ***********
+        coloredParams = {
+            Colored: false,
+        }
+
+        var colorGUI = gui.addFolder( "Colored prediction ");
+        colorGUI.open();
+        colorGUI.add(coloredParams, 'Colored').onChange( function() {
+            for (var i = 0; i < reliefList.length; i++)
+            {
+                colorReliefList[i].visible = coloredParams.Colored;
+                reliefList[i].visible = !coloredParams.Colored;
+            }
+        });
+    }
+
+    function onWindowResize() {
+
+        windowHalfX = window.innerWidth / 2;
+        windowHalfY = window.innerHeight / 2;
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        controls.handleResize();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function onDoubleClick(event) {
+        event.preventDefault();
+        if (event.button == 0) {
+            mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+            mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            var intersects = raycaster.intersectObjects(objects, true);
+            console.dir(intersects);
+            if (intersects.length > 0) {
+                tween = new TWEEN.Tween(controls.target)
+                .to({
+                  x: intersects[0].point.x,
+                  y: intersects[0].point.y,
+                  z: intersects[0].point.z
+              }, 250)
+                .start();
+            }
+        }
+    }
+
+    function onKeyDown(event) {
+        event.preventDefault();
+        
+        switch ( event.keyCode ) {
+
+            case 38: /*up*/
+            case 87: /*W*/ camera.position.z += 0.05; controls.target.z += 0.05; break;
+
+            case 37: /*left*/
+            case 65: /*A*/ camera.position.x += 0.05; controls.target.x += 0.05;break;
+
+            case 40: /*down*/
+            case 83: /*S*/ camera.position.z += -0.05; controls.target.z += -0.05;break;
+
+            case 39: /*right*/
+            case 68: /*D*/ camera.position.x += -0.05; controls.target.x += -0.05;break;
+
+            // case 82: /*R*/ this.moveUp = true; break;
+            // case 70: /*F*/ this.moveDown = true; break;
+
+        }
+    }
+
+
+    var x = 0;
+    var y = 0;
+    var step = 1;
+    noise.seed(Math.random());
+    function updateLight() {
+        var flickerSpeed = 50;
+
+        var temp = fireLight1.intensity + ((Math.random() - 0.5) * 2)/flickerSpeed; 
+        // var temp = fireLight1.intensity + value/10;
+        if (temp < 1.3 && temp > 0.7 && fireFlicker) {
+            fireLight1.intensity = temp;
+        }
+
+        var temp2 = torchLight1.intensity + ((Math.random() - 0.5) * 2)/flickerSpeed; 
+        // var temp2 = torchLight1.intensity + value/10;
+        if (temp2 < 1.3 && temp2 > 0.7 && fireFlicker) {
+            torchLight1.intensity = temp2;
+        }
+
+        // update torch light position to current position of the camera
+        torchLight1.position.set( camera.position.x, camera.position.y, camera.position.z );
+
+        // If you want the light to change focus directions
+        // (only works if the light source has target (is a spotlight, etc.))
+        var wanderLight = false;
+
+        if (wanderLight) {
+            var newX = fireLight1.target.position.x + ((Math.random() - 0.5) * 2)/.0001;
+            var newY = fireLight1.target.position.y + ((Math.random() - 0.5) * 2)/.0001;
+            var newZ = fireLight1.target.position.z + ((Math.random() - 0.5) * 2)/.0001;
+
+            fireLight1.target.position.set(newX, newY, newZ);
+        }
+        
+        // Perlin noise code; alternative noise generation
+        // var value;
+        // if (x <= 10000 && x >= 0) {
+        //     value = noise.simplex2(x/100, y/100);
+        //     // var newX = fireLight1.target.position.x + (value/100);
+        //     // var newY = fireLight1.target.position.y + (value/100);
+        //     // var newZ = fireLight1.target.position.z + (value/100);
+        //     // disable movement for now
+        //     // fireLight1.target.position.set(newX, newY, newZ);
+        //     x += 1;
+        // }
+        // else
+        // {
+        //     step *= -1; 
+        // }
+    }
+
+    function animate(time) {
+
+        requestAnimationFrame(animate);
+        TWEEN.update();
+        controls.update();
+        render();
+
+        updateLight();
+    }
+
+    function render() {
+
+        renderer.render(scene, camera);
+    }
+
+    </script>
+
+    </body>
+    </html>
