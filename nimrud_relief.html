@@ -312,7 +312,7 @@
 
                 var loader = new THREE.PLYLoader(manager);
 
-                loader.load( meshName, function ( geometry ) {
+                loader.load( 'models/'.concat(meshName), function ( geometry ) {
 
                     geometry.computeVertexNormals();
 
@@ -379,7 +379,7 @@
 
                     var loader = new THREE.PLYLoader(manager);
 
-                    loader.load( name, function ( geometry ) {
+                    loader.load( 'models/'.concat(name), function ( geometry ) {
 
                         geometry.computeVertexNormals();
 
