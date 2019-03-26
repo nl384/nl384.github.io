@@ -1,6 +1,6 @@
 ## Welcome to GitHub Pages
 
-[Link to Project](nl384.github.io/nimrud_relief/nimrud_relief.html)
+[Link to Project](https://nl384.github.io/nimrud_relief/nimrud_relief.html)
 
 You can use the [editor on GitHub](https://github.com/nl384/nl384.github.io/edit/master/index.md) to maintain and preview the content for your website in Markdown files.
 
