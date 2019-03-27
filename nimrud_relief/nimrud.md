@@ -2,7 +2,7 @@
 
 ### Introduction
 
-This project focused on creating high resolution 3D models of Assyrian stone reliefs and placing them into a 3D scene of a room from the Northwest Palace in the ancient city of Nimrud. You can test out the scene yourself by clicking on the following link: [Link to Scene](https://nl384.github.io/nimrud_relief/nimrud_relief.html)
+This project focused on creating high resolution 3D models of Assyrian stone reliefs and placing them into a 3D scene of a room from the Northwest Palace in the ancient city of Nimrud. You can test out the scene yourself by clicking on the following link: [Link to Scene](https://nl384.github.io/nimrud_relief/nimrud_relief.html). Note that it may take a while to load. 
 
 ### Floorplan
 

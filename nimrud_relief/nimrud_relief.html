@@ -321,7 +321,7 @@
                         flatShading: true, 
                         roughness: 0.8,
                         metalness: 0.1,
-                        side: THREE.DoubleSide, } );
+
 
                     var relief = new THREE.Mesh( geometry, material );
 
@@ -380,7 +380,7 @@
 
                     var loader = new THREE.PLYLoader(manager);
 
-                    loader.load( 'models/'.concat(name), function ( geometry ) {
+                    loader.load( 'https://media.githubusercontent.com/media/nl384/nl384.github.io/master/nimrud_relief/models/'.concat(name), function ( geometry ) {
 
                         geometry.computeVertexNormals();
 
