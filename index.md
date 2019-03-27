@@ -1,11 +1,11 @@
-## Reconstruction and Lighting of Assyrian Palace Reliefs
+## Index
 
 This is my website.
 
 Check out the project that I worked on during Spring-Summer 2018: [Link to Project](nimrud_relief/nimrud.md)
 
 
-<!-- [Link to Project](https://nl384.github.io/nimrud_relief/nimrud_relief.html) -->
+## Helpful Markdown Stuff from Github
 
 You can use the [editor on GitHub](https://github.com/nl384/nl384.github.io/edit/master/index.md) to maintain and preview the content for your website in Markdown files.
 
