@@ -8,7 +8,7 @@ This project focused on creating high resolution 3D models of Assyrian stone rel
 
 The room in the scene and the placement of the models in the scene are based on the floorplan of the room in the Northwest palace (see image below). 
 
-<img src="images/floorplan.png" alt="Floorplan" width="250"/>
+<img src="images/floorplan.png" alt="Floorplan" height="250"/>
 
 ### Scene Viewer
 
