@@ -3,7 +3,11 @@
 This project focused on creating a 3D scene based on a room from the Northwest Palace, located in the ancient city of Nimrud. 
 
 <!-- ![Exaggerated shading image](images/sunlightexag.jpg) -->
+<img src="images/torchlight.jpg" alt="Torchlight image" width="200"/>
+<img src="images/sunlight.jpg" alt="Sunlight image" width="200"/>
 <img src="images/sunlightexag.jpg" alt="Exaggerated shading image" width="200"/>
+<img src="images/blender.jpg" alt="Color regions image" width="200"/>
+
 
 
 Check out the project!
