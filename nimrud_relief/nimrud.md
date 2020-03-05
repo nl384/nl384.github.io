@@ -27,3 +27,4 @@ In addition, there are still some experimental aspects in the scene. For instanc
 <img src="images/blender.jpg" alt="Color regions image" width="200"/>
 
 You can test out the scene yourself by clicking on the following link: [Link to Scene](https://nl384.github.io/nimrud_relief/nimrud_relief.html)
+Unfortunately, with recent changes to how GitHub stores large files, the 3D models cannot currently be stored. I will update the project shortly to correctly load the files.
